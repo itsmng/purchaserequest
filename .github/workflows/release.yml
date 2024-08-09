@@ -19,7 +19,7 @@ jobs:
       - name: Build project
         run: |
           cd /home/runner/work/purchaserequest/
-          rm -r purchaserequest/tools
+          rm -r purchaserequest/tools purchaserequest/.git purchaserequest/.github
           tar -zcvf purchaserequest-${{ github.ref_name }}.tgz purchaserequest
 
       - name: Upload release

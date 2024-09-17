@@ -640,8 +640,6 @@ class PluginPurchaserequestPurchaseRequest extends CommonDBTM {
       global $CFG_GLPI;
 
       $dbu = new DbUtils();
-      $this->initForm($ID, $options);
-      $this->showFormHeader($options);
 
       $canedit            = $this->can($ID, UPDATE);
       $options['canedit'] = $canedit;
@@ -654,103 +652,6 @@ class PluginPurchaserequestPurchaseRequest extends CommonDBTM {
          unset($_SESSION['glpi_plugin_purchaserequests_fields']);
       }
 
-      /* title */
-      echo "<tr class='tab_bg_1'>";
-      echo "<td>" . __("Name") . "</td><td>";
-      if ($canedit) {
-         Html::autocompletionTextField($this, "name");
-      } else {
-         echo $this->fields["name"];
-      }
-      echo "</td><td colspan='2'></td></tr>";
-
-      echo "</td></tr>";
-      /* requester */
-      echo "<tr class='tab_bg_1'><td>" . __("Requester") . "&nbsp;<span style='color:red;'>*</span></td><td>";
-      if ($canedit) {
-         $rand_user = User::dropdown(['name'      => "users_id",
-                                      'value'     => $this->fields["users_id"],
-                                      'entity'    => $this->fields["entities_id"],
-                                      'on_change' => "pluginPurchaserequestLoadGroups();",
-                                      'right'     => 'all']);
-      } else {
-         echo Dropdown::getDropdownName($dbu->getTableForItemType('User'), $this->fields["users_id"]);
-      }
-      echo "</td>";
-
-      /* requester group */
-      echo "<td>" . __("Requester group");
-      echo "</td><td id='plugin_purchaserequest_group'>";
-
-      if ($canedit) {
-         if ($this->fields['users_id']) {
-            self::displayGroup($this->fields['users_id']);
-         }
-
-         $JS     = "function pluginPurchaserequestLoadGroups(){";
-         $params = ['users_id' => '__VALUE__',
-                    'entity'   => $this->fields["entities_id"]];
-         $JS     .= Ajax::updateItemJsCode("plugin_purchaserequest_group",
-                                           $CFG_GLPI["root_doc"] . "/plugins/purchaserequest/ajax/dropdownGroup.php",
-                                           $params, 'dropdown_users_id' . $rand_user, false);
-         $JS     .= "}";
-         echo Html::scriptBlock($JS);
-      } else {
-         echo Dropdown::getDropdownName($dbu->getTableForItemType('Group'), $this->fields["groups_id"]);
-      }
-      echo "</td></tr>";
-
-      /* location */
-      echo "<tr class='tab_bg_1'><td>" . __("Location") . "&nbsp;</td>";
-      echo "<td>";
-      Dropdown::show('Location', ['value'  => $this->fields["locations_id"],
-                                  'entity' => $this->fields["entities_id"]]);
-      echo "</td>";
-      echo "<td>" . __("Status") . "&nbsp;</td>";
-      echo "<td>";
-      Dropdown::show('PluginPurchaserequestPurchaseRequestState',
-                     ['value'  => $this->fields["plugin_purchaserequest_purchaserequeststates_id"],
-                      'entity' => $this->fields["entities_id"]]);
-      echo "</td></tr>";
-
-      /* description */
-      echo "<tr class='tab_bg_1'><td>" . __("Description") . "&nbsp;<span style='color:red;'>*</span></td>";
-      echo "<td colspan='3'>";
-      $opt = ["id"              => "comment",
-              "name"            => "comment",
-              "row"             => 4,
-              "cols"            => 100,
-              "enable_richtext" => true,
-              "value"           => html_entity_decode(stripslashes($this->fields['comment']))];
-      Html::textarea($opt);
-      //      echo "<textarea id='comment' name='comment' rows='4' cols='100'>" . stripslashes($this->fields['comment']) . "</textarea>";
-
-      echo "</td></tr>";
-
-      /* type */
-      $reference = new PluginOrderReference();
-      echo "<tr class='tab_bg_1'><td>" . __("Item type");
-      echo "&nbsp;<span style='color:red;'>*</span></td>";
-      echo "<td>";
-      $params = [
-         'myname'    => 'itemtype',
-         'value'     => $this->fields["itemtype"],
-         'entity'    => $_SESSION["glpiactive_entity"],
-         'ajax_page' => $CFG_GLPI["root_doc"] . '/plugins/order/ajax/referencespecifications.php',
-         'class'     => __CLASS__,
-      ];
-      if (Session::getCurrentInterface() == 'central') {
-         $reference->dropdownAllItems($params);
-      } else {
-         if($item = new $this->fields["itemtype"]()) {
-            echo $item->getTypeName();
-         }
-      }
-      echo "</td>";
-
-      echo "<td>" . __("Type") . "&nbsp;<span style='color:red;'>*</span></td>";
-      echo "<td>";
-      echo "<span id='show_types_id'>";
       if ($this->fields['itemtype']) {
          if ($this->fields['itemtype'] == 'PluginOrderOther') {
             $file = 'other';
@@ -761,99 +662,171 @@ class PluginPurchaserequestPurchaseRequest extends CommonDBTM {
          $plugin_typefilename = GLPI_ROOT . "/plugins/order/inc/" . strtolower($file) . "type.class.php";
          $itemtypeclass       = $this->fields['itemtype'] . "Type";
 
-         if (file_exists($core_typefilename)
-             || file_exists($plugin_typefilename)) {
-            Dropdown::show($itemtypeclass,
-                           [
-                              'name'  => "types_id",
-                              'value' => $this->fields["types_id"],
-                           ]);
-
-         }
       }
-      echo "</span>";
-      echo "</td></tr>";
+      $rand_user = mt_rand();
 
-      echo "<tr class='tab_bg_1'><td>" . __("Due date", "purchaserequest") . "</td>";
-      echo "<td>";
-      Html::showDateField("due_date", ['value' => $this->fields["due_date"]]);
-      echo "</td>";
-
-      echo "<td>" . __("To be validated by", "purchaserequest") . "&nbsp;<span style='color:red;'>*</span></td>";
-      echo "<td>";
-      User::dropdown(['name'   => "users_id_validate",
-                      'value'  => $this->fields["users_id_validate"],
-                      'entity' => $this->fields["entities_id"],
-                      'right'  => 'plugin_purchaserequest_validate']);
-      echo "</td></tr>";
-      echo "<tr class='tab_bg_1'><td>" . __("Amount", "purchaserequest") . "&nbsp;<span style='color:red;'>*</span></td>";
-      echo "<td>";
-      echo Html::input("amount", ['value' => $this->fields["amount"]]);
-      echo "</td>";
-
-      echo "<td>" . __("To be rebilled to the customer", "purchaserequest") . "&nbsp;</td>";
-      echo "<td>";
-      Html::showCheckbox(['name'    => "invoice_customer",
-                          'checked' => $this->fields["invoice_customer"]
-                         ]);
-
-      echo "</td>";
-      echo "</tr>";
-      echo "<tr class='tab_bg_1'>";
-      $order  = new PluginOrderOrder();
-      $hidden = false;
-      if ($this->fields["status"] != CommonITILValidation::ACCEPTED) {
-         $hidden = "hidden";
-      }
-      echo "<td $hidden>" . __("Linked to the order", "purchaserequest") . "</td>";
-      echo "<td $hidden>";
-
-      $options = [];
-      if ($order->getFromDB($this->fields['plugin_order_orders_id'])) {
-         $options['value'] = $this->fields['plugin_order_orders_id'];
-      }
-      PluginOrderOrder::dropdown($options);
-      echo "</td>";
-      $ticket = new Ticket();
-      echo "<td>" . __("Linked to ticket", "purchaserequest") . "</td>";
-      echo "<td>";
-      $options = [];
-      if ($ticket->getFromDB($this->fields['tickets_id'])) {
-         $options['value'] = $this->fields['tickets_id'];
-      }
-      $options['entity'] = $this->fields["entities_id"];
-      Ticket::dropdown($options);
-      echo "</td>";
-      if ($hidden != false) {
-         echo "<td colspan='2'></td>";
-      }
-      echo "</tr>";
-
-      if ($ID > 0) {
-         echo "<tr class='tab_bg_1'>";
-
-         if ($this->fields['processing_date'] == null) {
-            echo "<td>" . __("Treated", "purchaserequest") . "</td>";
-            echo "<td>";
-            Html::showCheckbox(['name' => 'is_process']);
-            echo "</td>";
-            echo "<td colspan='2'></td>";
-         } else {
-            echo "<th colspan='4'>" . __("Treated on", "purchaserequest");
-            echo " " . Html::convDateTime($this->fields['processing_date']);
-            echo "</th>";
-         }
-         echo "</tr>";
-      }
-
-      echo "<input type='hidden' name='users_id_creator' value='" . $_SESSION['glpiID'] . "'/>";
-
-      if ($canedit) {
-         $this->showFormButtons($options);
-      } else {
-         echo "</table></div>";
-         Html::closeForm();
-      }
+      $form = [
+        'action'     => $this->getFormURL(),
+        'itemtype'   => $this->getType(),
+        'content'    => [
+            $this->getTypeName() => [
+                'visible'   => true,
+                'inputs'    => [
+                    __('Name')         => $canedit ?[
+                        'type'  => 'text',
+                        'name'  => 'name',
+                        'value' => $this->fields["name"],
+                    ] : [
+                        'content' => $this->fields["name"],
+                    ],
+                    __('Requester')    => $canedit ?[
+                        'type'  => 'select',
+                        'name'  => 'users_id',
+                        'id' => 'dropdown_users_id' . $rand_user,
+                        'values' => getOptionsForUsers('all', ['entities_id' => $this->fields["entities_id"]]),
+                        'value' => $this->fields["users_id"],
+                        'hooks' => [
+                            'change' => Ajax::updateItemJsCode("plugin_purchaserequest_group",
+                                $CFG_GLPI["root_doc"] . "/plugins/purchaserequest/ajax/dropdownGroup.php",
+                                ['users_id' => '__VALUE__',
+                                 'entity'   => $this->fields["entities_id"]],
+                                'dropdown_users_id' . $rand_user, false)
+                        ],
+                        'required' => true,
+                    ] : [
+                        'content' => Dropdown::getDropdownName($dbu->getTableForItemType('User'), $this->fields["users_id"]),
+                    ],
+                    __('Requester group') => $canedit ?[
+                        'type'  => 'select',
+                        'name'  => 'groups_id',
+                        'id' => 'plugin_purchaserequest_group',
+                        'itemtype' => 'Group',
+                        'condition' => [
+                            'entities_id' => $this->fields["entities_id"],
+                        ],
+                        'value' => $this->fields["groups_id"],
+                    ] : [
+                        'content' => Dropdown::getDropdownName($dbu->getTableForItemType('Group'), $this->fields["groups_id"]),
+                    ],
+                    __('Location')      => [
+                        'type'  => 'select',
+                        'name'  => 'locations_id',
+                        'itemtype' => 'Location',
+                        'condition' => [
+                            'entities_id' => $this->fields["entities_id"],
+                        ],
+                        'value' => $this->fields["locations_id"],
+                    ],
+                    __('Status')        => [
+                        'type'  => 'select',
+                        'name'  => 'plugin_purchaserequest_purchaserequeststates_id',
+                        'itemtype' => 'PluginPurchaserequestPurchaseRequestState',
+                        'condition' => [
+                            'entities_id' => $this->fields["entities_id"],
+                        ],
+                        'value' => $this->fields["plugin_purchaserequest_purchaserequeststates_id"],
+                        'actions' => getItemActionButtons(['add'], PluginPurchaserequestPurchaseRequestState::getType()),
+                    ],
+                    __('Description')   => [
+                        'type'  => 'richtextarea',
+                        'name'  => 'comment',
+                        'value' => $this->fields["comment"],
+                        'col_lg' => 12,
+                        'col_md' => 12,
+                        'required' => true,
+                    ],
+                    __('Item type')     => [
+                        'content' => (function() use ($CFG_GLPI) {
+                            ob_start();
+                            if (Session::getCurrentInterface() == 'central') {
+                              $reference = new PluginOrderReference();
+                              $params = [
+                                 'myname'    => 'itemtype',
+                                 'value'     => $this->fields["itemtype"],
+                                 'entity'    => $_SESSION["glpiactive_entity"],
+                                 'ajax_page' => $CFG_GLPI["root_doc"] . '/plugins/order/ajax/referencespecifications.php',
+                                 'class'     => __CLASS__,
+                              ];
+                              $reference->dropdownAllItems($params);
+                            } else {
+                              if($item = new $this->fields["itemtype"]()) {
+                                echo $item->getTypeName();
+                              }
+                            }
+                            return ob_get_clean();
+                        })(),
+                    ],
+                    __('Type')     => $this->fields['itemtype'] && (file_exists($core_typefilename)
+                        || file_exists($plugin_typefilename)) ? [
+                       'name'  => "types_id",
+                       'itemtype'  => $itemtypeclass,
+                       'value' => $this->fields["types_id"],
+                    ] : [],
+                    __('Due date', 'purchaserequest')   => [
+                        'type'  => 'datetime-local',
+                        'name'  => 'due_date',
+                        'value' => $this->fields["due_date"],
+                    ],
+                    __('To be validated by', 'purchaserequest') => [
+                        'type'  => 'select',
+                        'name'  => 'users_id_validate',
+                        'itemtype' => 'User',
+                        'condition' => [
+                            'entities_id' => $this->fields["entities_id"],
+                        ],
+                        'value' => $this->fields["users_id_validate"],
+                        'actions' => getItemActionButtons(['info'], User::getType()),
+                        'required' => true,
+                    ],
+                    __('Amount', 'purchaserequest')     => [
+                        'type'  => 'text',
+                        'name'  => 'amount',
+                        'value' => $this->fields["amount"],
+                        'required' => true,
+                    ],
+                    __('To be rebilled to the customer', 'purchaserequest') => [
+                        'type'  => 'checkbox',
+                        'name'  => 'invoice_customer',
+                        'value' => $this->fields["invoice_customer"],
+                    ],
+                    __('Linked to the order', 'purchaserequest') => $this->fields['status'] != CommonITILValidation::ACCEPTED ? [] : [
+                        'type'  => 'select',
+                        'name'  => 'plugin_order_orders_id',
+                        'itemtype' => 'PluginOrderOrder',
+                        'condition' => [
+                            'entities_id' => $this->fields["entities_id"],
+                        ],
+                        'value' => $this->fields["plugin_order_orders_id"],
+                        'actions' => getItemActionButtons(['info'], PluginOrderOrder::getType()),
+                    ],
+                    __('Linked to ticket', 'purchaserequest') => [
+                        'type'  => 'select',
+                        'name'  => 'tickets_id',
+                        'itemtype' => 'Ticket',
+                        'condition' => [
+                            'entities_id' => $this->fields["entities_id"],
+                        ],
+                        'value' => $this->fields["tickets_id"],
+                        'actions' => getItemActionButtons(['info'], Ticket::getType()),
+                    ],
+                    __('Treated', 'purchaserequest') => $ID > 0 && $this->fields['processing_date'] == null ? [
+                        'type' => 'checkbox',
+                        'name' => 'is_process',
+                        'value' => $this->fields['processing_date'],
+                    ] : [],
+                    __('Treated on', 'purchaserequest') => $ID > 0 && $this->fields['processing_date'] != null ? [
+                        'content' => Html::convDateTime($this->fields['processing_date']),
+                    ] : [],
+                    [
+                        'type' => 'hidden',
+                        'name' => 'processing_date',
+                        'value' => $this->fields['processing_date'],
+                    ],
+                ],
+            ]
+        ],
+      ];
+      renderTwigForm($form, '', $this->fields);
 
       return true;
    }
